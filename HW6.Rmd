@@ -1,0 +1,213 @@
+---
+title: "Homework 6"
+author: "Yusuf Ismaeel"
+date: "10/9/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+@. Say what function you use in the following situations.
+
+    a. The column names are levels of a factor.
+    Gather
+    b. The entries of a column should be column names.
+    Spread would the be proper function you would use.
+    c. An entry contains values for two or more variables.
+    Separate
+    d. Two variables need to be combined into one.
+    Unite
+---------------------
+
+@.  Consider the data in the following CSV file that gives the number of days of rainfall for five cities over three months.
+
+```{r, warning = FALSE, message = FALSE}
+df <- read_csv2('City;January;February;March
+  Atlanta, Georgia;11;10;10
+  Austin, Texas;7;7;9
+  Baltimore, Maryland;10;9;10
+  Birmingham, Alabama;11;10;10
+  Boston, Massachusetts;11;10;12')
+df
+```
+
+$\quad$ $\quad$ a.  What command would you use to tidy this data?
+```{r}
+df1 <- df %>% gather(key = "Month", 'Date', c("January", "February", "March")) %>% spread(key=City, value = Date) %>% arrange(match(Month, c("January", "February", "March")))
+df1
+```
+  
+$\quad$ $\quad$ b.  Find the mean number of days of rainfall over January through March for each of the five cities.
+```{r}
+df1 %>% select(-Month) %>% colMeans()
+```
+
+--------------------
+
+@.  Now suppose the data was presented in the following CSV file:
+```{r, warning = FALSE, message = FALSE}
+df <- read_csv2("
+  Atlanta, Georgia;Jan/11
+  Atlanta, Georgia;Feb/10
+  Atlanta, Georgia;Mar/10
+  Austin, Texas;Jan/7
+  Austin, Texas;Feb/7
+  Austin, Texas;Mar/9
+  Baltimore, Maryland;Jan/10
+  Baltimore, Maryland;Feb/9
+  Baltimore, Maryland;Mar/10
+  Birmingham, Alabama;Jan/11
+  Birmingham, Alabama;Feb/10
+  Birmingham, Alabama;Mar/10
+  Boston, Massachusetts;Jan/11
+  Boston, Massachusetts;Feb/10
+  Boston, Massachusetts;Mar/12",
+  col_names = c("City", "Days_rain")
+)
+df
+```
+
+$\quad$ $\quad$ a. Now what command would you use to tidy this data?
+```{r}
+df2 <- df%>% separate(col = 'Days_rain', into = c("Month", "Date"), sep = '/') %>% spread(key=City, value = Date) %>%arrange(match(Month, c("Jan", "Feb", "Mar")))
+df2
+```
+
+$\quad$ $\quad$ b. Create a bar plot that for each of the three months, puts five bars side by side for the number of days of rain for the different cities.
+```{r}
+df3 <- read_csv2('City;January;February;March
+  Atlanta, Georgia;11;10;10
+  Austin, Texas;7;7;9
+  Baltimore, Maryland;10;9;10
+  Birmingham, Alabama;11;10;10
+  Boston, Massachusetts;11;10;12')
+df3 %>% gather(key = 'Month', 'Rainfall', c("January", "February", "March")) %>% ggplot(aes(x = City, Rainfall, fill = Month)) + geom_bar(stat = 'identity', position = 'dodge')
+```
+
+--------------------
+
+@. (Exercise 12.3.3.1 of text) Both `spread()` and `gather()` have a convert argument. What does it do?
+It reads the column and determines if the spreaded/ gathered column(argument) can be converted into from type string into a float or integer.
+
+--------------------
+
+@. (Exercise 12.3.3.2 of text)  Why does this code fail?
+
+```{r, results = "hide", message = FALSE, warning = FALSE, error = TRUE}
+table4a %>% 
+  gather(1999, 2000, key = "year", value = "cases")
+```
+Because the years 1999 and 2000 are not put into vector form and are introduced too early, the gather argument expects a key to group the values 1999 and 2000 into but FIRST. They should be added after cases in the form of a vector...
+
+like this:
+```{r}
+table4a  %>% gather(key = 'Year',  'Cases', c("1999", "2000"))
+```
+
+--------------------
+
+@. (Exercise 12.3.3.3 of text modified) 
+
+    a.  Why does spreading this tibble fail? 
+    Because there are two values of age for Phillip Woods, thus there are no unique values corresponding to each column you're trying to spread into.
+    b.  To deal with this, first group the tibble by `name` and `key`.  Then use `row_number` to add a new variable with value equal to the row number.  This variable is now unique for each observation.  Now try spreading the tibble.  What gets assigned to the height of Phillip Woods at age 50?
+    Not assigned, because there is no age that corresponds to age = 50.
+
+```{r}
+people <- tribble(
+  ~name,             ~key,    ~value,
+  #-----------------|--------|------
+  "Phillip Woods",   "age",       45,
+  "Phillip Woods",   "height",   186,
+  "Phillip Woods",   "age",       50,
+  "Jessica Cordero", "age",       37,
+  "Jessica Cordero", "height",   156
+)
+people %>% group_by(name, key) %>% mutate(obs = row_number()) %>% spread(key, value) %>% select(-obs)
+```
+
+--------------------
+
+@. (Exercise 12.3.3.4 of text) Tidy the simple tibble below. Do you need to spread or gather it? What are the variables?
+We need to gather it, the variables are pregnant, gender and the count.
+```{r}
+preg <- tribble(
+  ~pregnant, ~male, ~female,
+  "yes",     NA,    10,
+  "no",      20,    12
+)
+preg %>% gather(male, female, key = "gender", value = "count")
+```
+
+
+--------------------
+
+@.  Consider the following data.
+```{r}
+name <- c("Aytara Matthis", "Cladora Glenn", "Hapsworth Tennant", "Intaris Elendar")
+gender <- c("Female", "Female", "Male", "Male")
+class <- c("Fighter", "Cleric", "Paladin", "Wizard")
+order <- c("Neutral", "Lawful", "Lawful", "Neutral")
+moral <- c("Good", "Good", "Good", "Neutral")
+characters <- tibble(name, gender, class, order, moral)
+characters
+```
+$\quad$ $\quad$ a. Separate the first column into separate variables for First and Last Name.
+```{r}
+characters %>% separate(name, into = c("First Name", "Last Name"), sep = ' ')
+```
+    
+$\quad$ $\quad$ b. Sort the characters by last name in alphabetical order.
+
+```{r}
+char1 <- characters %>% separate(name, into = c("First_Name", "Last_Name"), sep = ' ') %>% arrange((Last_Name))
+char1
+```
+
+--------------------
+
+
+@.  Continuing with the last problem.
+
+    a. Use `unite` to bring together the `order` and `moral` variables into a new variable `Alignment` using a space as the separator.
+```{r}
+char2 <- char1 %>% unite(col = "Alignment", c("order", "moral"), sep = " ")
+char2
+```
+    
+    b. Replace the string "Neutral Neutral" with "True Neutral" in the Alignment variable.
+```{r}
+char2[char2=='Neutral Neutral']<- "True Neutral"
+char2
+```
+
+--------------------
+
+@. The data set `senate116.txt` (retrieved from https://www.senate.gov/general/contact_information/senators_cfm.cfm on 2019-03-05) contains the name, party, state, class, address, phone, and contact URL for all 100 members of the 116th Congress.  Let's tidy this data!
+
+    First let's get the various lines organized into different variables.
+```{r, message = FALSE}
+lines_tibble <- read_delim("senate116.txt", delim = "\n", skip = 1, col_names = FALSE)
+lines <- pull(lines_tibble)
+stuff <- lines[seq(1, 400, by = 4)]
+address <- lines[seq(2, 400, by = 4)]
+phone <- lines[seq(3, 400, by = 4)]
+contact_url <- lines[seq(4, 400, by = 4)]
+df<- tibble(stuff, address, phone, contact_url)
+df
+```
+    
+Now finish tidying up this data:  extract from the `stuff` variable the `name`, `party`, `state`, and `class` of the observation, and eliminate any excess characters such as `Contact:  `.
+
+```{r}
+code <- df %>% separate(col = stuff, into = c('Last Name', "First Name"), sep = ',') %>% separate(col = 'First Name', into = c("First Name", "Party", "State"), sep = "-") %>% separate(col = State, into = c("State", "Class"), sep = "Class")
+code$Party <- str_replace_all(code$Party, "[(]", "")
+code$State <- str_replace_all(code$State, "[)]", "")
+code$contact_url<- str_replace_all(code$contact_url, "Contact: ", "")
+code %>% unite("Name", c("First Name", "Last Name"), sep = "") %>% select(Name, Party, State, Class, contact_url) %>% rename(Contact = contact_url)
+```
+
